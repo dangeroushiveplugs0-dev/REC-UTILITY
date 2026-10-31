@@ -15,6 +15,10 @@ var _cursor_override := false
 var _teleport_cursor_enabled := false
 
 var _canvas: CanvasLayer
+var _launcher_button: Button
+var _launcher_idle := 0.0
+const LAUNCHER_FADE_DELAY := 4.0
+const LAUNCHER_FADE_DURATION := 1.2
 var _panel: PanelContainer
 var _status_label: Label
 var _shader_button: Button
@@ -41,7 +45,15 @@ func _ready() -> void:
 	_set_status("GUMM script loaded. Open REC Settings, then use SCAN REC UI to inspect controls.")
 
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		_reveal_launcher()
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		_reveal_launcher()
+
+
 func _process(delta: float) -> void:
+	_update_launcher_fade(delta)
 	_scan_elapsed += delta
 	if _scan_elapsed >= 0.75:
 		_scan_elapsed = 0.0
@@ -98,26 +110,29 @@ func _build_interface() -> void:
 	add_child(_canvas)
 
 	var viewport := get_viewport().get_visible_rect().size
+	var margin := 12.0
+	var panel_width := minf(420.0, viewport.x - margin * 2.0)
+	var panel_height := minf(560.0, viewport.y - margin * 2.0)
 
-	var open_button := Button.new()
-	open_button.text = "REC+"
-	open_button.position = Vector2(maxf(8.0, viewport.x - 88.0), maxf(8.0, viewport.y - 76.0))
-	open_button.custom_minimum_size = Vector2(76.0, 56.0)
-	_style_button(open_button, Color("#26344a"), Color("#78c8b5"))
-	_canvas.add_child(open_button)
-	open_button.pressed.connect(_toggle_panel)
+	_launcher_button = Button.new()
+	_launcher_button.text = "REC+"
+	_launcher_button.position = Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 52.0))
+	_launcher_button.custom_minimum_size = Vector2(52.0, 34.0)
+	_launcher_button.add_theme_font_size_override("font_size", 11)
+	_style_button(_launcher_button, Color("#8f3f1f"), Color("#e58a3a"))
+	_canvas.add_child(_launcher_button)
+	_launcher_button.pressed.connect(_toggle_panel)
+	_launcher_idle = 0.0
 
-	var panel_width := minf(440.0, viewport.x - 20.0)
-	var panel_height := minf(590.0, viewport.y - 32.0)
 	_panel = PanelContainer.new()
 	_panel.position = Vector2((viewport.x - panel_width) / 2.0, (viewport.y - panel_height) / 2.0)
 	_panel.size = Vector2(panel_width, panel_height)
 	_panel.visible = false
-	_panel.add_theme_stylebox_override("panel", _make_style(Color("#172333"), Color("#78c8b5")))
+	_panel.add_theme_stylebox_override("panel", _make_style(Color("#28170f"), Color("#bd642d")))
 	_canvas.add_child(_panel)
 
 	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 8)
+	layout.add_theme_constant_override("separation", 4)
 	_panel.add_child(layout)
 
 	var header := HBoxContainer.new()
@@ -126,34 +141,38 @@ func _build_interface() -> void:
 	var title := Label.new()
 	title.text = "REC UTILITY"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_color_override("font_color", Color("#f3e6bd"))
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_color_override("font_color", Color("#f6d6a8"))
+	title.add_theme_font_size_override("font_size", 14)
 	header.add_child(title)
 
 	var close_button := Button.new()
 	close_button.text = "X"
-	close_button.custom_minimum_size = Vector2(48.0, 44.0)
-	_style_button(close_button, Color("#5b3545"), Color("#f3e6bd"))
+	close_button.custom_minimum_size = Vector2(34.0, 28.0)
+	close_button.add_theme_font_size_override("font_size", 11)
+	_style_button(close_button, Color("#60301f"), Color("#e58a3a"))
 	header.add_child(close_button)
 	close_button.pressed.connect(func() -> void: _panel.visible = false)
 
 	_shader_button = Button.new()
-	_shader_button.custom_minimum_size = Vector2(0.0, 48.0)
-	_style_button(_shader_button, Color("#26344a"), Color("#78c8b5"))
+	_shader_button.custom_minimum_size = Vector2(0.0, 32.0)
+	_shader_button.add_theme_font_size_override("font_size", 11)
+	_style_button(_shader_button, Color("#60301f"), Color("#bd642d"))
 	layout.add_child(_shader_button)
 	_shader_button.pressed.connect(_toggle_shaders)
 
 	_cursor_button = Button.new()
-	_cursor_button.custom_minimum_size = Vector2(0.0, 48.0)
-	_style_button(_cursor_button, Color("#26344a"), Color("#78c8b5"))
+	_cursor_button.custom_minimum_size = Vector2(0.0, 32.0)
+	_cursor_button.add_theme_font_size_override("font_size", 11)
+	_style_button(_cursor_button, Color("#60301f"), Color("#bd642d"))
 	layout.add_child(_cursor_button)
 	_cursor_button.pressed.connect(_toggle_teleport_cursor)
 	_update_setting_button_text()
 
 	var scan_button := Button.new()
-	scan_button.text = "SCAN REC UI (DIAGNOSTICS)"
-	scan_button.custom_minimum_size = Vector2(0.0, 44.0)
-	_style_button(scan_button, Color("#34435b"), Color("#f3e6bd"))
+	scan_button.text = "SCAN REC UI"
+	scan_button.custom_minimum_size = Vector2(0.0, 29.0)
+	scan_button.add_theme_font_size_override("font_size", 10)
+	_style_button(scan_button, Color("#75401f"), Color("#e58a3a"))
 	layout.add_child(scan_button)
 	scan_button.pressed.connect(_show_ui_diagnostics)
 
@@ -162,27 +181,30 @@ func _build_interface() -> void:
 
 	var section_title := Label.new()
 	section_title.text = "CHEAT CODES  /  TAP TO SUBMIT"
-	section_title.add_theme_color_override("font_color", Color("#f3e6bd"))
+	section_title.add_theme_color_override("font_color", Color("#f6d6a8"))
+	section_title.add_theme_font_size_override("font_size", 11)
 	layout.add_child(section_title)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0.0, maxf(120.0, panel_height - 250.0))
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	layout.add_child(scroll)
 
 	var cheat_list := VBoxContainer.new()
 	cheat_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cheat_list.add_theme_constant_override("separation", 4)
+	cheat_list.add_theme_constant_override("separation", 2)
 	scroll.add_child(cheat_list)
 
 	for entry in _cheats:
 		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 5)
 		cheat_list.add_child(row)
 
 		var code_button := Button.new()
 		code_button.text = str(entry.get("code", "UNKNOWN"))
-		code_button.custom_minimum_size = Vector2(132.0, 48.0)
-		_style_button(code_button, Color("#34435b"), Color("#f3e6bd"))
+		code_button.custom_minimum_size = Vector2(100.0, 31.0)
+		code_button.add_theme_font_size_override("font_size", 10)
+		_style_button(code_button, Color("#75401f"), Color("#bd642d"))
 		row.add_child(code_button)
 		code_button.pressed.connect(_request_apply_code.bind(str(entry.get("code", ""))))
 
@@ -191,15 +213,16 @@ func _build_interface() -> void:
 		description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		description.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		description.add_theme_color_override("font_color", Color("#d6e0e8"))
-		description.add_theme_font_size_override("font_size", 13)
+		description.add_theme_color_override("font_color", Color("#ead1b2"))
+		description.add_theme_font_size_override("font_size", 10)
 		row.add_child(description)
 
 	_status_label = Label.new()
 	_status_label.text = "Open REC Settings and keep the cheat box visible."
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_status_label.custom_minimum_size = Vector2(0.0, 42.0)
-	_status_label.add_theme_color_override("font_color", Color("#f3e6bd"))
+	_status_label.custom_minimum_size = Vector2(0.0, 28.0)
+	_status_label.add_theme_color_override("font_color", Color("#f6d6a8"))
+	_status_label.add_theme_font_size_override("font_size", 10)
 	layout.add_child(_status_label)
 
 	_confirm_dialog = ConfirmationDialog.new()
@@ -210,15 +233,15 @@ func _build_interface() -> void:
 
 	_diagnostic_dialog = AcceptDialog.new()
 	_diagnostic_dialog.title = "REC UI diagnostics"
-	_diagnostic_dialog.min_size = Vector2i(420, 360)
+	_diagnostic_dialog.min_size = Vector2i(360, 300)
 	add_child(_diagnostic_dialog)
 	var diagnostic_scroll := ScrollContainer.new()
-	diagnostic_scroll.custom_minimum_size = Vector2(400.0, 300.0)
+	diagnostic_scroll.custom_minimum_size = Vector2(340.0, 250.0)
 	_diagnostic_dialog.add_child(diagnostic_scroll)
 	_diagnostic_label = Label.new()
 	_diagnostic_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diagnostic_label.add_theme_font_size_override("font_size", 10)
 	diagnostic_scroll.add_child(_diagnostic_label)
-
 
 func _show_ui_diagnostics() -> void:
 	var lines: Array[String] = []
@@ -272,10 +295,10 @@ func _make_style(background: Color, border: Color) -> StyleBoxFlat:
 	style.border_color = border
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(0)
-	style.content_margin_left = 10.0
-	style.content_margin_right = 10.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
+	style.content_margin_left = 5.0
+	style.content_margin_right = 5.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
 	return style
 
 
@@ -286,11 +309,30 @@ func _style_button(button: Button, background: Color, border: Color) -> void:
 	button.add_theme_stylebox_override("focus", _make_style(background, border))
 	button.add_theme_color_override("font_color", Color("#ffffff"))
 	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
-	button.add_theme_font_size_override("font_size", 15)
+	button.add_theme_font_size_override("font_size", 11)
 
 
 func _toggle_panel() -> void:
 	_panel.visible = not _panel.visible
+	_reveal_launcher()
+
+
+func _reveal_launcher() -> void:
+	if _launcher_button == null:
+		return
+	_launcher_idle = 0.0
+	_launcher_button.modulate.a = 1.0
+	_launcher_button.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _update_launcher_fade(delta: float) -> void:
+	if _launcher_button == null:
+		return
+	_launcher_idle += delta
+	var fade_progress := clampf((_launcher_idle - LAUNCHER_FADE_DELAY) / LAUNCHER_FADE_DURATION, 0.0, 1.0)
+	_launcher_button.modulate.a = 1.0 - fade_progress * 0.92
+	if fade_progress >= 1.0:
+		_launcher_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _request_apply_code(code: String) -> void:
