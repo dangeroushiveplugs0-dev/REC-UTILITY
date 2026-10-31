@@ -56,6 +56,33 @@ func _ready() -> void:
 	_set_status("GUMM script loaded. Open REC Settings, then use SCAN REC UI to inspect controls.")
 
 
+func _build_cinematic_shader() -> void:
+	# Independent full-screen post-process: no launcher interaction required.
+	var shader_path := _mod_path.path_join("shaders/rec_cinematic.gdshader")
+	var shader_file := FileAccess.open(shader_path, FileAccess.READ)
+	if shader_file == null:
+		push_error("REC Utility: cinematic shader file missing: " + shader_path)
+		return
+
+	var shader := Shader.new()
+	shader.code = shader_file.get_as_text()
+	shader_file.close()
+
+	var back_buffer := BackBufferCopy.new()
+	back_buffer.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
+	_canvas.add_child(back_buffer)
+
+	var effect := ColorRect.new()
+	effect.name = "REC_Cinematic_PostProcess"
+	effect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	effect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	effect.material = material
+	_canvas.add_child(effect)
+	print("REC Utility: cinematic color grade + chromatic aberration enabled")
+
+
 func _input(event: InputEvent) -> void:
 	# Keep the known-good #16 behavior: any screen tap reveals the launcher.
 	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
@@ -120,6 +147,7 @@ func _build_interface() -> void:
 	_canvas = CanvasLayer.new()
 	_canvas.layer = 120
 	add_child(_canvas)
+	_build_cinematic_shader()
 
 	var viewport := get_viewport().get_visible_rect().size
 	var margin := 12.0
