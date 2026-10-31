@@ -19,8 +19,9 @@ def main() -> None:
     cfg = MOD / "mod.cfg"
     script = MOD / "mod.gd"
     catalogue = MOD / "data" / "cheats.json"
+    shader = MOD / "shaders" / "rec_cinematic.gdshader"
 
-    for required in (cfg, script, catalogue):
+    for required in (cfg, script, catalogue, shader):
         if not required.is_file():
             raise SystemExit(f"Missing required mod file: {required.relative_to(ROOT)}")
 
