@@ -26,6 +26,7 @@ var _cursor_button: Button
 var _confirm_dialog: ConfirmationDialog
 var _diagnostic_dialog: AcceptDialog
 var _diagnostic_label: Label
+var _ui_font: Font
 var _pending_code := ""
 var _scan_elapsed := 0.0
 
@@ -105,6 +106,7 @@ func _save_state() -> void:
 
 
 func _build_interface() -> void:
+	_load_ui_font()
 	_canvas = CanvasLayer.new()
 	_canvas.layer = 120
 	add_child(_canvas)
@@ -116,6 +118,8 @@ func _build_interface() -> void:
 
 	_launcher_button = Button.new()
 	_launcher_button.text = "REC+"
+	if _ui_font != null:
+		_launcher_button.theme = _make_ui_theme()
 	_launcher_button.position = Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 52.0))
 	_launcher_button.custom_minimum_size = Vector2(52.0, 34.0)
 	_launcher_button.add_theme_font_size_override("font_size", 11)
@@ -128,6 +132,8 @@ func _build_interface() -> void:
 	_panel.position = Vector2((viewport.x - panel_width) / 2.0, (viewport.y - panel_height) / 2.0)
 	_panel.size = Vector2(panel_width, panel_height)
 	_panel.visible = false
+	if _ui_font != null:
+		_panel.theme = _make_ui_theme()
 	_panel.add_theme_stylebox_override("panel", _make_style(Color("#28170f"), Color("#bd642d")))
 	_canvas.add_child(_panel)
 
@@ -242,6 +248,26 @@ func _build_interface() -> void:
 	_diagnostic_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_diagnostic_label.add_theme_font_size_override("font_size", 10)
 	diagnostic_scroll.add_child(_diagnostic_label)
+
+func _load_ui_font() -> void:
+	# Optional game-bundled font; fall back cleanly if this build omits it.
+	var font_path := "res://assets/assets/fonts/VCR_OSD_Mono.ttf"
+	if not ResourceLoader.exists(font_path):
+		print("REC Utility: VCR_OSD_Mono.ttf not exposed by this game build; using default font")
+		return
+	var loaded: Resource = load(font_path)
+	if loaded is Font:
+		_ui_font = loaded as Font
+		print("REC Utility: loaded game font VCR_OSD_Mono.ttf")
+	else:
+		push_warning("REC Utility: VCR font resource exists but could not be used as a Font")
+
+
+func _make_ui_theme() -> Theme:
+	var theme := Theme.new()
+	theme.default_font = _ui_font
+	return theme
+
 
 func _show_ui_diagnostics() -> void:
 	var lines: Array[String] = []
