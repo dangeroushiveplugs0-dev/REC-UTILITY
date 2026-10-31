@@ -243,9 +243,13 @@ func _build_interface() -> void:
 	add_child(_diagnostic_dialog)
 	var diagnostic_scroll := ScrollContainer.new()
 	diagnostic_scroll.custom_minimum_size = Vector2(340.0, 250.0)
+	diagnostic_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	diagnostic_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_diagnostic_dialog.add_child(diagnostic_scroll)
 	_diagnostic_label = Label.new()
 	_diagnostic_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diagnostic_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_diagnostic_label.custom_minimum_size = Vector2(320.0, 0.0)
 	_diagnostic_label.add_theme_font_size_override("font_size", 10)
 	diagnostic_scroll.add_child(_diagnostic_label)
 
