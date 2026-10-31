@@ -29,7 +29,7 @@ def main() -> None:
         raise SystemExit("mod.cfg is missing the GUMMM Godot Mod metadata.")
 
     script_text = script.read_text(encoding="utf-8")
-    for marker in ("func initialize(", "text_submitted.emit(", "func _apply_saved_game_settings("):
+    for marker in ("func initialize(", "text_submitted.emit(", "func _apply_saved_game_settings(", "func _show_ui_diagnostics("):
         if marker not in script_text:
             raise SystemExit(f"mod.gd is missing required runtime marker: {marker}")
 
