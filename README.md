@@ -1,6 +1,6 @@
 # REC Utility
 
-A small, pixel-style GUMMM mod for the Android version of REC. It is packaged as a ZIP for import into GUMMM; it is not a separate Android APK.
+A GUMMM mod for the Android version of REC, including a full-screen cinematic post-process shader. It is packaged as a ZIP for import into GUMMM; it is not a separate Android APK.
 
 ## Current target
 
@@ -19,6 +19,8 @@ That confirms the loader supports the kind of script package we are building. It
 
 ## Features in this integration build
 
+- Full-screen cinematic color grade with subtle red/blue chromatic aberration, edge vignette, and restrained exposure/contrast/saturation adjustments.
+- The shader is applied independently of the REC+ floating launcher; GUMMM's mod enable/disable controls the effect.
 - In-game REC Utility panel with square, high-contrast styling.
 - Catalogue of the 19 developer-provided cheat codes.
 - Attempt to submit a selected code through the visible cheat input's `text_submitted` signal.
@@ -27,7 +29,7 @@ That confirms the loader supports the kind of script package we are building. It
 - Attempt to reapply saved settings when matching visible toggles are found.
 - **SCAN REC UI (DIAGNOSTICS)** button to list visible input fields, buttons, labels, node names, and toggle states. This helps identify REC's actual controls without asking users to inspect decompiled scripts.
 
-The UI uses hard-edged panels and a limited pixel-art-inspired palette. No smooth decorative artwork is included.
+The shader is intentionally subtle and uses one full-screen pass. It does not add multi-pass bloom or heavy blur, keeping the first Android implementation relatively lightweight.
 
 ## Runtime verification still required
 
