@@ -18,6 +18,16 @@ jobs:
       - name: Validate mod files and cheat catalogue
         run: python3 scripts/validate_mod.py
 
+      - name: Set up the REC-compatible Godot parser
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Parse all GDScript with Godot 4.7.2
+        run: godot --headless --editor --path . --quit
+
       - name: Build importable ZIP
         run: |
           mkdir -p dist
