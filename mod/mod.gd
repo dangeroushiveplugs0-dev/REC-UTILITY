@@ -283,16 +283,20 @@ func _collect_line_edits(node: Node, result: Array[LineEdit]) -> void:
 
 
 func _toggle_shaders() -> void:
-	_shader_override = true
-	_shaders_enabled = not _shaders_enabled
+	if _shader_override:
+		_shaders_enabled = not _shaders_enabled
+	else:
+		_shader_override = true
 	_save_state()
 	_update_setting_button_text()
 	_apply_saved_game_settings()
 
 
 func _toggle_teleport_cursor() -> void:
-	_cursor_override = true
-	_teleport_cursor_enabled = not _teleport_cursor_enabled
+	if _cursor_override:
+		_teleport_cursor_enabled = not _teleport_cursor_enabled
+	else:
+		_cursor_override = true
 	_save_state()
 	_update_setting_button_text()
 	_apply_saved_game_settings()
