@@ -300,9 +300,11 @@ func _toggle_teleport_cursor() -> void:
 
 func _update_setting_button_text() -> void:
 	if _shader_button != null:
-		_shader_button.text = "SHADERS: " + ("ON" if _shaders_enabled else "OFF") + "  (saved)"
+		var shader_state := "saved" if _shader_override else "tap to set"
+		_shader_button.text = "SHADERS: " + ("ON" if _shaders_enabled else "OFF") + "  (" + shader_state + ")"
 	if _cursor_button != null:
-		_cursor_button.text = "TELEPORT CURSOR: " + ("ON" if _teleport_cursor_enabled else "OFF") + "  (saved)"
+		var cursor_state := "saved" if _cursor_override else "tap to set"
+		_cursor_button.text = "TELEPORT CURSOR: " + ("ON" if _teleport_cursor_enabled else "OFF") + "  (" + cursor_state + ")"
 
 
 func _apply_saved_game_settings() -> void:
