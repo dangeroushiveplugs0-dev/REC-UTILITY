@@ -421,7 +421,7 @@ func _copy_all_codes() -> void:
 	var codes: Array[String] = []
 	for entry in _cheats:
 		codes.append(str(entry.get("code", "")))
-	DisplayServer.clipboard_set("\\n".join(codes))
+	DisplayServer.clipboard_set("\n".join(codes))
 	_set_status("Copied all " + str(codes.size()) + " cheat codes to clipboard.")
 
 
