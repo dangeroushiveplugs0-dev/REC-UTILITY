@@ -414,21 +414,21 @@ func _on_launcher_gui_input(event: InputEvent) -> void:
 			if touch.index == _launcher_touch_index:
 				_end_launcher_drag()
 				_launcher_touch_index = -1
-			accept_event()
+			_launcher_button.accept_event()
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if _launcher_dragging and drag.index == _launcher_touch_index:
 			_move_launcher_to(drag.position)
-			accept_event()
+			_launcher_button.accept_event()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_begin_launcher_drag(get_global_mouse_position())
 		else:
 			_end_launcher_drag()
-			accept_event()
+			_launcher_button.accept_event()
 	elif event is InputEventMouseMotion and _launcher_dragging:
 		_move_launcher_to(get_global_mouse_position())
-		accept_event()
+		_launcher_button.accept_event()
 
 
 func _begin_launcher_drag(pointer_position: Vector2) -> void:
