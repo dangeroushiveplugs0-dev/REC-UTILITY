@@ -25,7 +25,8 @@ var _shader_button: Button
 var _cursor_button: Button
 var _confirm_dialog: ConfirmationDialog
 var _diagnostic_dialog: AcceptDialog
-var _diagnostic_label: Label
+var _diagnostic_text: TextEdit
+var _code_input: LineEdit
 var _pending_code := ""
 var _scan_elapsed := 0.0
 
@@ -180,10 +181,46 @@ func _build_interface() -> void:
 	layout.add_child(divider)
 
 	var section_title := Label.new()
-	section_title.text = "CHEAT CODES  /  TAP TO SUBMIT"
+	section_title.text = "CHEAT CODES  /  SELECT, EDIT OR COPY"
 	section_title.add_theme_color_override("font_color", Color("#f6d6a8"))
 	section_title.add_theme_font_size_override("font_size", 11)
 	layout.add_child(section_title)
+
+	_code_input = LineEdit.new()
+	_code_input.placeholder_text = "Tap a code below or type one here"
+	_code_input.custom_minimum_size = Vector2(0.0, 34.0)
+	_code_input.add_theme_font_size_override("font_size", 12)
+	_code_input.add_theme_stylebox_override("normal", _make_style(Color("#1d120d"), Color("#bd642d"), 10))
+	_code_input.add_theme_color_override("font_color", Color("#fff0d8"))
+	layout.add_child(_code_input)
+
+	var code_actions := HBoxContainer.new()
+	code_actions.add_theme_constant_override("separation", 5)
+	layout.add_child(code_actions)
+
+	var submit_button := Button.new()
+	submit_button.text = "SUBMIT"
+	submit_button.custom_minimum_size = Vector2(0.0, 30.0)
+	submit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(submit_button, Color("#8f3f1f"), Color("#e58a3a"))
+	code_actions.add_child(submit_button)
+	submit_button.pressed.connect(_submit_code_from_field)
+
+	var copy_button := Button.new()
+	copy_button.text = "COPY"
+	copy_button.custom_minimum_size = Vector2(0.0, 30.0)
+	copy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(copy_button, Color("#60301f"), Color("#bd642d"))
+	code_actions.add_child(copy_button)
+	copy_button.pressed.connect(_copy_current_code)
+
+	var copy_all_button := Button.new()
+	copy_all_button.text = "COPY ALL"
+	copy_all_button.custom_minimum_size = Vector2(0.0, 30.0)
+	copy_all_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(copy_all_button, Color("#60301f"), Color("#bd642d"))
+	code_actions.add_child(copy_all_button)
+	copy_all_button.pressed.connect(_copy_all_codes)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -206,7 +243,7 @@ func _build_interface() -> void:
 		code_button.add_theme_font_size_override("font_size", 10)
 		_style_button(code_button, Color("#75401f"), Color("#bd642d"))
 		row.add_child(code_button)
-		code_button.pressed.connect(_request_apply_code.bind(str(entry.get("code", ""))))
+		code_button.pressed.connect(_select_code.bind(str(entry.get("code", ""))))
 
 		var description := Label.new()
 		description.text = str(entry.get("description", ""))
@@ -235,17 +272,27 @@ func _build_interface() -> void:
 	_diagnostic_dialog.title = "REC UI diagnostics"
 	_diagnostic_dialog.min_size = Vector2i(360, 300)
 	add_child(_diagnostic_dialog)
-	var diagnostic_scroll := ScrollContainer.new()
-	diagnostic_scroll.custom_minimum_size = Vector2(340.0, 250.0)
-	diagnostic_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	diagnostic_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_diagnostic_dialog.add_child(diagnostic_scroll)
-	_diagnostic_label = Label.new()
-	_diagnostic_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_diagnostic_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_diagnostic_label.custom_minimum_size = Vector2(320.0, 0.0)
-	_diagnostic_label.add_theme_font_size_override("font_size", 10)
-	diagnostic_scroll.add_child(_diagnostic_label)
+	var diagnostic_layout := VBoxContainer.new()
+	diagnostic_layout.custom_minimum_size = Vector2(340.0, 280.0)
+	diagnostic_layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	diagnostic_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_diagnostic_dialog.add_child(diagnostic_layout)
+
+	_diagnostic_text = TextEdit.new()
+	_diagnostic_text.editable = true
+	_diagnostic_text.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	_diagnostic_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_diagnostic_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_diagnostic_text.custom_minimum_size = Vector2(320.0, 240.0)
+	_diagnostic_text.add_theme_font_size_override("font_size", 10)
+	diagnostic_layout.add_child(_diagnostic_text)
+
+	var diagnostic_copy := Button.new()
+	diagnostic_copy.text = "COPY REPORT"
+	diagnostic_copy.custom_minimum_size = Vector2(0.0, 32.0)
+	_style_button(diagnostic_copy, Color("#75401f"), Color("#e58a3a"))
+	diagnostic_layout.add_child(diagnostic_copy)
+	diagnostic_copy.pressed.connect(_copy_diagnostic_report)
 
 
 func _show_ui_diagnostics() -> void:
@@ -340,6 +387,51 @@ func _update_launcher_fade(delta: float) -> void:
 		_launcher_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
+
+func _select_code(code: String) -> void:
+	_code_input.text = code
+	_code_input.grab_focus()
+	_code_input.select_all()
+	_set_status("Selected " + code + ". Edit, copy, or press SUBMIT.")
+
+
+func _submit_code_from_field() -> void:
+	var code := _code_input.text.strip_edges().to_upper()
+	if code.is_empty():
+		_set_status("Type or select a cheat code first.")
+		return
+	_pending_code = code
+	if code in ADDITIVE_CODES and code in _submitted_codes:
+		_confirm_dialog.dialog_text = code + " was submitted before. It may add resources again. Submit it again?"
+		_confirm_dialog.popup_centered()
+		return
+	_submit_pending_code()
+
+
+func _copy_current_code() -> void:
+	var code := _code_input.text.strip_edges()
+	if code.is_empty():
+		_set_status("There is no code to copy yet.")
+		return
+	DisplayServer.clipboard_set(code)
+	_set_status("Copied " + code + " to clipboard.")
+
+
+func _copy_all_codes() -> void:
+	var codes: Array[String] = []
+	for entry in _cheats:
+		codes.append(str(entry.get("code", "")))
+	DisplayServer.clipboard_set("\\n".join(codes))
+	_set_status("Copied all " + str(codes.size()) + " cheat codes to clipboard.")
+
+
+func _copy_diagnostic_report() -> void:
+	if _diagnostic_text == null:
+		return
+	DisplayServer.clipboard_set(_diagnostic_text.text)
+	_set_status("Copied the REC UI report to clipboard.")
+
+
 func _request_apply_code(code: String) -> void:
 	if code.is_empty():
 		return
@@ -358,7 +450,7 @@ func _confirm_pending_code() -> void:
 func _submit_pending_code() -> void:
 	var input := _find_cheat_input()
 	if input == null:
-		_set_status("Cheat box not found. Open REC Settings and leave its cheat input visible.")
+		_set_status("Game input not found. Your code is still here: use COPY, then paste it into REC.")
 		return
 
 	input.grab_focus()
