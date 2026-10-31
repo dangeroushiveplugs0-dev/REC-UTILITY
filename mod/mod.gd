@@ -113,7 +113,7 @@ func _save_state() -> void:
 
 func _build_interface() -> void:
 	_canvas = CanvasLayer.new()
-	_canvas.layer = 120
+	_canvas.layer = 128
 	add_child(_canvas)
 
 	var viewport := get_viewport().get_visible_rect().size
