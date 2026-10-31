@@ -20,6 +20,8 @@ var _status_label: Label
 var _shader_button: Button
 var _cursor_button: Button
 var _confirm_dialog: ConfirmationDialog
+var _diagnostic_dialog: AcceptDialog
+var _diagnostic_label: Label
 var _pending_code := ""
 var _scan_elapsed := 0.0
 
@@ -35,7 +37,8 @@ func initialize(mod_path: String, scene_tree: SceneTree) -> void:
 
 func _ready() -> void:
 	_build_interface()
-	print("REC Utility: loaded ", _cheats.size(), " cheat codes")
+	print("REC Utility: GUMM script loaded; ", _cheats.size(), " cheat codes available")
+	_set_status("GUMM script loaded. Open REC Settings, then use SCAN REC UI to inspect controls.")
 
 
 func _process(delta: float) -> void:
@@ -147,6 +150,13 @@ func _build_interface() -> void:
 	_cursor_button.pressed.connect(_toggle_teleport_cursor)
 	_update_setting_button_text()
 
+	var scan_button := Button.new()
+	scan_button.text = "SCAN REC UI (DIAGNOSTICS)"
+	scan_button.custom_minimum_size = Vector2(0.0, 44.0)
+	_style_button(scan_button, Color("#34435b"), Color("#f3e6bd"))
+	layout.add_child(scan_button)
+	scan_button.pressed.connect(_show_ui_diagnostics)
+
 	var divider := HSeparator.new()
 	layout.add_child(divider)
 
@@ -197,6 +207,63 @@ func _build_interface() -> void:
 	_confirm_dialog.dialog_text = "This code may add resources again. Do you want to submit it again?"
 	add_child(_confirm_dialog)
 	_confirm_dialog.confirmed.connect(_confirm_pending_code)
+
+	_diagnostic_dialog = AcceptDialog.new()
+	_diagnostic_dialog.title = "REC UI diagnostics"
+	_diagnostic_dialog.min_size = Vector2(420.0, 360.0)
+	add_child(_diagnostic_dialog)
+	var diagnostic_scroll := ScrollContainer.new()
+	diagnostic_scroll.custom_minimum_size = Vector2(400.0, 300.0)
+	_diagnostic_dialog.add_child(diagnostic_scroll)
+	_diagnostic_label = Label.new()
+	_diagnostic_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	diagnostic_scroll.add_child(_diagnostic_label)
+
+
+func _show_ui_diagnostics() -> void:
+	var lines: Array[String] = []
+	lines.append("REC Utility script: LOADED")
+	lines.append("Visible controls detected below. Keep REC Settings open while scanning.")
+	lines.append("")
+	var counts := {"LineEdit": 0, "TextEdit": 0, "BaseButton": 0, "Label": 0}
+	_collect_diagnostic_controls(_scene_tree.root, lines, counts)
+	lines.append("")
+	lines.append("Counts: LineEdit %d | TextEdit %d | Buttons %d | Labels %d" % [counts["LineEdit"], counts["TextEdit"], counts["BaseButton"], counts["Label"]])
+	if counts["LineEdit"] == 0 and counts["TextEdit"] == 0:
+		lines.append("No standard text input found. REC may use a custom input control.")
+	if counts["BaseButton"] == 0:
+		lines.append("No standard buttons found in the visible game UI.")
+	_diagnostic_label.text = "\n".join(lines)
+	_diagnostic_dialog.popup_centered()
+
+
+func _collect_diagnostic_controls(node: Node, lines: Array[String], counts: Dictionary) -> void:
+	if node == _canvas:
+		return
+	if node is Control and node.is_visible_in_tree():
+		var detail := ""
+		if node is LineEdit:
+			counts["LineEdit"] += 1
+			var edit := node as LineEdit
+			detail = "LineEdit | %s | placeholder=%s | text=%s" % [str(node.name), edit.placeholder_text, edit.text]
+		elif node is TextEdit:
+			counts["TextEdit"] += 1
+			var edit := node as TextEdit
+			detail = "TextEdit | %s | placeholder=%s" % [str(node.name), edit.placeholder_text]
+		elif node is BaseButton:
+			counts["BaseButton"] += 1
+			var button := node as BaseButton
+			var button_text := button.text if node is Button else ""
+			detail = "%s | %s | text=%s | toggle=%s | pressed=%s" % [node.get_class(), str(node.name), button_text, str(button.toggle_mode), str(button.button_pressed)]
+		elif node is Label:
+			counts["Label"] += 1
+			var label := node as Label
+			if not label.text.strip_edges().is_empty():
+				detail = "Label | %s | %s" % [str(node.name), label.text]
+		if not detail.is_empty() and lines.size() < 48:
+			lines.append(detail)
+	for child in node.get_children():
+		_collect_diagnostic_controls(child, lines, counts)
 
 
 func _make_style(background: Color, border: Color) -> StyleBoxFlat:
