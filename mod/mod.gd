@@ -210,7 +210,7 @@ func _build_interface() -> void:
 
 	_diagnostic_dialog = AcceptDialog.new()
 	_diagnostic_dialog.title = "REC UI diagnostics"
-	_diagnostic_dialog.min_size = Vector2(420.0, 360.0)
+	_diagnostic_dialog.min_size = Vector2i(420, 360)
 	add_child(_diagnostic_dialog)
 	var diagnostic_scroll := ScrollContainer.new()
 	diagnostic_scroll.custom_minimum_size = Vector2(400.0, 300.0)
@@ -253,7 +253,7 @@ func _collect_diagnostic_controls(node: Node, lines: Array[String], counts: Dict
 		elif node is BaseButton:
 			counts["BaseButton"] += 1
 			var button := node as BaseButton
-			var button_text := button.text if node is Button else ""
+			var button_text := (node as Button).text if node is Button else ""
 			detail = "%s | %s | text=%s | toggle=%s | pressed=%s" % [node.get_class(), str(node.name), button_text, str(button.toggle_mode), str(button.button_pressed)]
 		elif node is Label:
 			counts["Label"] += 1
