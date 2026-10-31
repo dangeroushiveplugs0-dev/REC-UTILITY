@@ -17,6 +17,7 @@ var _teleport_cursor_enabled := false
 var _canvas: CanvasLayer
 var _launcher_button: PanelContainer
 var _launcher_idle := 0.0
+var _launcher_position_was_saved := false
 var _launcher_dragging := false
 var _launcher_dragged := false
 var _launcher_touch_index := -1
@@ -25,7 +26,7 @@ var _launcher_drag_offset := Vector2.ZERO
 var _launcher_saved_position := Vector2(-1.0, -1.0)
 const LAUNCHER_FADE_DELAY := 2.5
 const LAUNCHER_FADE_DURATION := 0.8
-const LAUNCHER_IDLE_ALPHA := 0.14
+const LAUNCHER_IDLE_ALPHA := 0.45
 var _panel: PanelContainer
 var _status_label: Label
 var _shader_button: Button
@@ -92,6 +93,7 @@ func _load_state() -> void:
 		for code in history:
 			_submitted_codes.append(str(code))
 	_launcher_saved_position = config.get_value("launcher", "position", Vector2(-1.0, -1.0))
+	_launcher_position_was_saved = _launcher_saved_position.x >= 0.0 and _launcher_saved_position.y >= 0.0
 
 
 func _save_state() -> void:
@@ -121,8 +123,9 @@ func _build_interface() -> void:
 	_launcher_button = PanelContainer.new()
 	_launcher_button.custom_minimum_size = Vector2(50.0, 50.0)
 	_launcher_button.size = Vector2(50.0, 50.0)
-	_launcher_button.position = _launcher_saved_position if _launcher_saved_position.x >= 0.0 else Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 62.0))
+	_launcher_button.position = _launcher_saved_position if _launcher_position_was_saved else Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 62.0))
 	_launcher_button.position = _clamp_launcher_position(_launcher_button.position)
+	_launcher_button.visibility_changed.connect(_reveal_launcher)
 	_launcher_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_launcher_button.add_theme_stylebox_override("panel", _make_style(Color("#8f3f1f"), Color("#e58a3a"), 25))
 	var launcher_label := Label.new()
