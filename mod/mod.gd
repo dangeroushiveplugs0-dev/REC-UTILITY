@@ -238,7 +238,7 @@ func _show_ui_diagnostics() -> void:
 
 
 func _collect_diagnostic_controls(node: Node, lines: Array[String], counts: Dictionary) -> void:
-	if node == _canvas:
+	if node == _canvas or node == _confirm_dialog or node == _diagnostic_dialog:
 		return
 	if node is Control and node.is_visible_in_tree():
 		var detail := ""
