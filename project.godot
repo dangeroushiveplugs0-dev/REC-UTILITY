@@ -1,0 +1,8 @@
+; Validation project only. This file is not included in the GUMMM ZIP.
+config_version=5
+
+[application]
+config/name="REC Utility Mod Validation"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
