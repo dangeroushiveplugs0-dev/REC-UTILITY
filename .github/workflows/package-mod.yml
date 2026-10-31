@@ -58,4 +58,4 @@ jobs:
           name: REC-UTILITY-GUMMM-ZIP
           path: dist/REC-UTILITY.zip
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
