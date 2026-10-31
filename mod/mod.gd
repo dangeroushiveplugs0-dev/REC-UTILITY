@@ -46,7 +46,17 @@ func initialize(mod_path: String, scene_tree: SceneTree) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load_state()
 	_load_cheats()
-	_scene_tree.root.call_deferred("add_child", self)
+	# Attach synchronously so GUMMM does not mark this mod active before
+	# its node and interface have actually entered the scene tree.
+	if not is_inside_tree():
+		_scene_tree.root.add_child(self)
+
+
+func set_enabled(enabled: bool) -> void:
+	# GUMMM calls this when the user changes the mod toggle after loading.
+	if _canvas != null:
+		_canvas.visible = enabled
+	process_mode = Node.PROCESS_MODE_ALWAYS if enabled else Node.PROCESS_MODE_DISABLED
 
 
 func _ready() -> void:
@@ -113,7 +123,7 @@ func _save_state() -> void:
 
 func _build_interface() -> void:
 	_canvas = CanvasLayer.new()
-	_canvas.layer = 128
+	_canvas.layer = 256
 	add_child(_canvas)
 
 	var viewport := get_viewport().get_visible_rect().size
