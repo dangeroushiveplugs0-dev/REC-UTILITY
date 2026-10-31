@@ -15,19 +15,10 @@ var _cursor_override := false
 var _teleport_cursor_enabled := false
 
 var _canvas: CanvasLayer
-var _launcher_button: PanelContainer
+var _launcher_button: Button
 var _launcher_idle := 0.0
-var _launcher_position_was_saved := false
-var _launcher_has_been_used := false
-var _launcher_dragging := false
-var _launcher_dragged := false
-var _launcher_touch_index := -1
-var _launcher_press_position := Vector2.ZERO
-var _launcher_drag_offset := Vector2.ZERO
-var _launcher_saved_position := Vector2(-1.0, -1.0)
-const LAUNCHER_FADE_DELAY := 2.5
-const LAUNCHER_FADE_DURATION := 0.8
-const LAUNCHER_IDLE_ALPHA := 0.45
+const LAUNCHER_FADE_DELAY := 4.0
+const LAUNCHER_FADE_DURATION := 1.2
 var _panel: PanelContainer
 var _status_label: Label
 var _shader_button: Button
@@ -63,6 +54,14 @@ func _ready() -> void:
 	_build_interface()
 	print("REC Utility: GUMM script loaded; ", _cheats.size(), " cheat codes available")
 	_set_status("GUMM script loaded. Open REC Settings, then use SCAN REC UI to inspect controls.")
+
+
+func _input(event: InputEvent) -> void:
+	# Keep the known-good #16 behavior: any screen tap reveals the launcher.
+	if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		_reveal_launcher()
+	elif event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		_reveal_launcher()
 
 
 func _process(delta: float) -> void:
@@ -103,8 +102,6 @@ func _load_state() -> void:
 	if history is Array:
 		for code in history:
 			_submitted_codes.append(str(code))
-	_launcher_saved_position = config.get_value("launcher", "position", Vector2(-1.0, -1.0))
-	_launcher_position_was_saved = _launcher_saved_position.x >= 0.0 and _launcher_saved_position.y >= 0.0
 
 
 func _save_state() -> void:
@@ -114,8 +111,6 @@ func _save_state() -> void:
 	config.set_value("cursor", "override", _cursor_override)
 	config.set_value("cursor", "enabled", _teleport_cursor_enabled)
 	config.set_value("history", "submitted", _submitted_codes)
-	if _launcher_button != null:
-		config.set_value("launcher", "position", _launcher_button.position)
 	var error := config.save(STATE_PATH)
 	if error != OK:
 		push_warning("REC Utility: could not save preferences")
@@ -123,7 +118,7 @@ func _save_state() -> void:
 
 func _build_interface() -> void:
 	_canvas = CanvasLayer.new()
-	_canvas.layer = 256
+	_canvas.layer = 120
 	add_child(_canvas)
 
 	var viewport := get_viewport().get_visible_rect().size
@@ -131,23 +126,14 @@ func _build_interface() -> void:
 	var panel_width := minf(420.0, viewport.x - margin * 2.0)
 	var panel_height := minf(560.0, viewport.y - margin * 2.0)
 
-	_launcher_button = PanelContainer.new()
-	_launcher_button.custom_minimum_size = Vector2(50.0, 50.0)
-	_launcher_button.size = Vector2(50.0, 50.0)
-	_launcher_button.position = _launcher_saved_position if _launcher_position_was_saved else Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 62.0))
-	_launcher_button.position = _clamp_launcher_position(_launcher_button.position)
-	_launcher_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_launcher_button.add_theme_stylebox_override("panel", _make_style(Color("#8f3f1f"), Color("#e58a3a"), 25))
-	var launcher_label := Label.new()
-	launcher_label.text = "REC+"
-	launcher_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	launcher_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	launcher_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	launcher_label.add_theme_color_override("font_color", Color("#ffffff"))
-	launcher_label.add_theme_font_size_override("font_size", 11)
-	_launcher_button.add_child(launcher_label)
+	_launcher_button = Button.new()
+	_launcher_button.text = "REC+"
+	_launcher_button.position = Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 52.0))
+	_launcher_button.custom_minimum_size = Vector2(52.0, 34.0)
+	_launcher_button.add_theme_font_size_override("font_size", 11)
+	_style_button(_launcher_button, Color("#8f3f1f"), Color("#e58a3a"), 18)
 	_canvas.add_child(_launcher_button)
-	_launcher_button.gui_input.connect(_on_launcher_gui_input)
+	_launcher_button.pressed.connect(_toggle_panel)
 	_launcher_idle = 0.0
 
 	_panel = PanelContainer.new()
@@ -402,76 +388,11 @@ func _reveal_launcher() -> void:
 
 
 func _update_launcher_fade(delta: float) -> void:
-	if _launcher_button == null or not _launcher_has_been_used:
-		return
-	if _launcher_dragging:
+	if _launcher_button == null:
 		return
 	_launcher_idle += delta
 	var fade_progress := clampf((_launcher_idle - LAUNCHER_FADE_DELAY) / LAUNCHER_FADE_DURATION, 0.0, 1.0)
-	_launcher_button.modulate.a = lerpf(1.0, LAUNCHER_IDLE_ALPHA, fade_progress)
-
-
-func _clamp_launcher_position(position: Vector2) -> Vector2:
-	var viewport := get_viewport().get_visible_rect().size
-	var max_x := maxf(0.0, viewport.x - _launcher_button.size.x)
-	var max_y := maxf(0.0, viewport.y - _launcher_button.size.y)
-	return Vector2(clampf(position.x, 0.0, max_x), clampf(position.y, 0.0, max_y))
-
-
-func _on_launcher_gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			_launcher_touch_index = touch.index
-			_begin_launcher_drag(touch.position)
-		else:
-			if touch.index == _launcher_touch_index:
-				_end_launcher_drag()
-				_launcher_touch_index = -1
-			_launcher_button.accept_event()
-	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		if _launcher_dragging and drag.index == _launcher_touch_index:
-			_move_launcher_to(drag.position)
-			_launcher_button.accept_event()
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_begin_launcher_drag(get_global_mouse_position())
-		else:
-			_end_launcher_drag()
-			_launcher_button.accept_event()
-	elif event is InputEventMouseMotion and _launcher_dragging:
-		_move_launcher_to(get_global_mouse_position())
-		_launcher_button.accept_event()
-
-
-func _begin_launcher_drag(pointer_position: Vector2) -> void:
-	_launcher_has_been_used = true
-	_reveal_launcher()
-	_launcher_dragging = true
-	_launcher_dragged = false
-	_launcher_press_position = pointer_position
-	_launcher_drag_offset = pointer_position - _launcher_button.global_position
-
-
-func _move_launcher_to(pointer_position: Vector2) -> void:
-	if not _launcher_dragging:
-		return
-	if pointer_position.distance_to(_launcher_press_position) > 7.0:
-		_launcher_dragged = true
-	_launcher_button.position = _clamp_launcher_position(pointer_position - _launcher_drag_offset)
-
-
-func _end_launcher_drag() -> void:
-	if not _launcher_dragging:
-		return
-	_launcher_dragging = false
-	if _launcher_dragged:
-		_launcher_button.position = _clamp_launcher_position(_launcher_button.position)
-		_save_state()
-	else:
-		_toggle_panel()
-	_reveal_launcher()
+	_launcher_button.modulate.a = 1.0 - fade_progress * 0.92
 
 
 
