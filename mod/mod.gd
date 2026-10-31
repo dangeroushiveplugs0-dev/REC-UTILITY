@@ -18,6 +18,7 @@ var _canvas: CanvasLayer
 var _launcher_button: PanelContainer
 var _launcher_idle := 0.0
 var _launcher_position_was_saved := false
+var _launcher_has_been_used := false
 var _launcher_dragging := false
 var _launcher_dragged := false
 var _launcher_touch_index := -1
@@ -125,11 +126,11 @@ func _build_interface() -> void:
 	_launcher_button.size = Vector2(50.0, 50.0)
 	_launcher_button.position = _launcher_saved_position if _launcher_position_was_saved else Vector2(maxf(6.0, viewport.x - 62.0), maxf(6.0, viewport.y - 62.0))
 	_launcher_button.position = _clamp_launcher_position(_launcher_button.position)
-	_launcher_button.visibility_changed.connect(_reveal_launcher)
 	_launcher_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_launcher_button.add_theme_stylebox_override("panel", _make_style(Color("#8f3f1f"), Color("#e58a3a"), 25))
 	var launcher_label := Label.new()
 	launcher_label.text = "REC+"
+	launcher_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	launcher_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	launcher_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	launcher_label.add_theme_color_override("font_color", Color("#ffffff"))
@@ -391,7 +392,7 @@ func _reveal_launcher() -> void:
 
 
 func _update_launcher_fade(delta: float) -> void:
-	if _launcher_button == null:
+	if _launcher_button == null or not _launcher_has_been_used:
 		return
 	if _launcher_dragging:
 		return
@@ -435,6 +436,7 @@ func _on_launcher_gui_input(event: InputEvent) -> void:
 
 
 func _begin_launcher_drag(pointer_position: Vector2) -> void:
+	_launcher_has_been_used = true
 	_reveal_launcher()
 	_launcher_dragging = true
 	_launcher_dragged = false
