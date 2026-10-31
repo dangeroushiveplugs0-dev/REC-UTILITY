@@ -1,0 +1,83 @@
+[
+  {
+    "code": "AMOGUS",
+    "description": "Reduce suspicion to 0",
+    "min_build": "0.5.6.4"
+  },
+  {
+    "code": "BLOWONDICE",
+    "description": "Win all dice rolls"
+  },
+  {
+    "code": "CHIPBAT",
+    "description": "No flies during night sequences"
+  },
+  {
+    "code": "DEEPSLEEPER",
+    "description": "Prevent waking during night sequences"
+  },
+  {
+    "code": "EINSTEIN",
+    "description": "Set intelligence to 6"
+  },
+  {
+    "code": "MILFY",
+    "description": "Kaede always appears"
+  },
+  {
+    "code": "MONEYPLZ",
+    "description": "Add 1,000,000 credits",
+    "repeat_warning": true
+  },
+  {
+    "code": "NINJA",
+    "description": "Set dexterity to 6"
+  },
+  {
+    "code": "RISELIA",
+    "description": "Kan will not check up during night sequences"
+  },
+  {
+    "code": "ROLEXTIME",
+    "description": "Maximum time during night sequences"
+  },
+  {
+    "code": "SLIME",
+    "description": "Unlock all gallery cutscenes"
+  },
+  {
+    "code": "SLOTH",
+    "description": "Skip nighttime minigames"
+  },
+  {
+    "code": "STREAMER",
+    "description": "Set access level to Diamond",
+    "min_build": "0.5.4.8"
+  },
+  {
+    "code": "SUAVEDUDE",
+    "description": "Set charisma to 6"
+  },
+  {
+    "code": "TOLOVERS",
+    "description": "Set relationship to 100 and unlock relationship quests"
+  },
+  {
+    "code": "YODIK",
+    "description": "Add 1,000 stamina",
+    "repeat_warning": true
+  },
+  {
+    "code": "ZEDMART",
+    "description": "Set each item quantity to 99"
+  },
+  {
+    "code": "WEIII",
+    "description": "Add 10,000,000 PeepTube points",
+    "repeat_warning": true
+  },
+  {
+    "code": "PEEPTUBER",
+    "description": "Reveal the Discord verification password"
+  }
+]
